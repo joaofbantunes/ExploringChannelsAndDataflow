@@ -1,6 +1,7 @@
 ﻿using ExploringChannelsAndDataflow.Common;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -49,17 +50,16 @@ namespace ExploringChannelsAndDataflow.Channels.BackgroundWork
         private Task[] RegisterProcessors()
         {
             const int parallelProcessorsCount = 5;
-            var processors = new Task[parallelProcessorsCount];
 
-            for (var i = 0; i < parallelProcessorsCount; ++i)
-            {
-                processors[i] = Task.Factory.StartNew(ReadAndProcessMessages, i, TaskCreationOptions.LongRunning);
-            }
+            var processors = Enumerable
+                .Range(0, parallelProcessorsCount)
+                .Select(i => ReadAndProcessMessagesAsync(i))
+                .ToArray();
 
             return processors;
         }
 
-        private async Task ReadAndProcessMessages(object id)
+        private async Task ReadAndProcessMessagesAsync(int id)
         {
             _logger.LogDebug("Worker {workerId} starting...", id);
             while (await _channel.Reader.WaitToReadAsync())
